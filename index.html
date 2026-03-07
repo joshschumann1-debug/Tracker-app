@@ -28,6 +28,12 @@
   .scale-btn{width:44px;height:44px;border-radius:12px;border:none;background:#1e1e2e;color:#888;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.15s;}
   .scale-btn.active{background:#6C63FF;color:#fff;transform:scale(1.12);box-shadow:0 0 14px #6C63FF88;}
   .num-input{margin-top:6px;width:100%;background:#1e1e2e;border:none;border-radius:10px;padding:10px 12px;color:#fff;font-size:16px;outline:none;font-family:'DM Sans',sans-serif;}
+  .yesno-input{display:flex;gap:10px;margin-top:6px;}
+  .yesno-btn{flex:1;height:44px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+  .yesno-btn.yes{background:#1e1e2e;color:#888;}
+  .yesno-btn.yes.active{background:#74c69d;color:#fff;box-shadow:0 0 14px #74c69d88;}
+  .yesno-btn.no{background:#1e1e2e;color:#888;}
+  .yesno-btn.no.active{background:#ff5e5e;color:#fff;box-shadow:0 0 14px #ff5e5e88;}
   .save-btn{width:100%;padding:14px;border-radius:14px;border:none;background:#6C63FF;color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px;transition:all 0.3s;box-shadow:0 0 20px #6C63FF55;font-family:'DM Sans',sans-serif;}
   .save-btn.saved{background:#74c69d;box-shadow:0 0 20px #74c69d55;}
   .tab-row{display:flex;gap:8px;margin-bottom:16px;}
@@ -182,7 +188,7 @@ function renderToday() {
       <div class="card-header">
         <span class="emoji">${cat.emoji}</span>
         <span class="name">${cat.name}</span>
-        <span class="badge">${cat.type==="scale"?"1–5":"number"}</span>
+        <span class="badge">${cat.type==="scale"?"1–5":cat.type==="yesno"?"yes/no":"number"}</span>
       </div>`;
     if (cat.type === "scale") {
       html += `<div class="scale-input">`;
@@ -190,6 +196,11 @@ function renderToday() {
         html += `<button class="scale-btn${val===n?" active":""}" onclick="setScale('${cat.id}',${n})">${n}</button>`;
       }
       html += `</div>`;
+    } else if (cat.type === "yesno") {
+      html += `<div class="yesno-input">
+        <button class="yesno-btn yes${val===true?" active":""}" onclick="setYesNo('${cat.id}',true)">✓ Yes</button>
+        <button class="yesno-btn no${val===false?" active":""}" onclick="setYesNo('${cat.id}',false)">✗ No</button>
+      </div>`;
     } else {
       html += `<input class="num-input" type="number" placeholder="Enter value..." value="${val??""}" oninput="setNum('${cat.id}',this.value)"/>`;
     }
@@ -220,10 +231,17 @@ function renderHistory() {
       const color = catColor(catIdx);
       const data = days.map(d => ({date:d, value: state.entries[d]?.[cat.id] ?? null}));
       const filled = data.filter(d => d.value !== null).map(d => d.value);
-      const avg = filled.length ? (filled.reduce((a,b)=>a+b,0)/filled.length).toFixed(1) : "–";
-      const max = filled.length ? Math.max(...filled) : "–";
-      const min = filled.length ? Math.min(...filled) : "–";
-      const chartMax = cat.type === "scale" ? 5 : (filled.length ? Math.max(...filled)*1.2 : 1);
+      let avg, max, min, chartMax;
+      if (cat.type === "yesno") {
+        const yesCount = filled.filter(v => v === true).length;
+        avg = filled.length ? yesCount+"/"+ filled.length : "–";
+        max = "–"; min = "–"; chartMax = 1;
+      } else {
+        avg = filled.length ? (filled.reduce((a,b)=>a+b,0)/filled.length).toFixed(1) : "–";
+        max = filled.length ? Math.max(...filled) : "–";
+        min = filled.length ? Math.min(...filled) : "–";
+        chartMax = cat.type === "scale" ? 5 : (filled.length ? Math.max(...filled)*1.2 : 1);
+      }
 
       html += `<div class="stats-row">
         ${[["Avg",avg],["High",max],["Low",min]].map(([l,v])=>`
@@ -238,8 +256,15 @@ function renderHistory() {
         <div class="bars">`;
       data.forEach(d => {
         const hasVal = d.value !== null;
-        const h = hasVal ? Math.max((d.value/chartMax)*100,4) : 4;
-        html += `<div class="bar" style="height:${h}%;background:${hasVal?color:"#1e1e2e"};opacity:${hasVal?1:0.4}" title="${hasVal?d.date+": "+d.value:"No data"}"></div>`;
+        let h, barColor;
+        if (cat.type === "yesno") {
+          h = hasVal ? 100 : 4;
+          barColor = hasVal ? (d.value === true ? "#74c69d" : "#ff5e5e") : "#1e1e2e";
+        } else {
+          h = hasVal ? Math.max((d.value/chartMax)*100,4) : 4;
+          barColor = hasVal ? color : "#1e1e2e";
+        }
+        html += `<div class="bar" style="height:${h}%;background:${barColor};opacity:${hasVal?1:0.4}" title="${hasVal?d.date+": "+(cat.type==="yesno"?(d.value?"Yes":"No"):d.value):"No data"}"></div>`;
       });
       html += `</div>
         <div class="bar-dates">
@@ -263,7 +288,13 @@ function renderHistory() {
       state.categories.forEach((cat, i) => {
         const val = d[cat.id];
         if (val === undefined || val === null || val === "") return;
-        if (cat.type === "scale") {
+        if (cat.type === "yesno") {
+          html += `<div class="log-row">
+            <span class="log-emoji">${cat.emoji}</span>
+            <span class="log-name">${cat.name}</span>
+            <span style="font-weight:700;font-size:14px;color:${val===true?"#74c69d":"#ff5e5e"}">${val===true?"✓ Yes":"✗ No"}</span>
+          </div>`;
+        } else if (cat.type === "scale") {
           const colors = ["#ff5e5e","#ff9a3c","#ffd23f","#74c69d","#6C63FF"];
           const dotColor = colors[val-1];
           let dots = "";
@@ -308,8 +339,9 @@ function renderSettings() {
   html += `</div>
     <input class="text-input" type="text" placeholder="Category name (e.g. Mood, Steps...)" value="${state.newCat.name}" oninput="setNewCatName(this.value)"/>
     <div class="type-row">
-      <button class="type-btn${state.newCat.type==="scale"?" active":""}" onclick="setNewCatType('scale')">⭐ Scale 1–5</button>
+      <button class="type-btn${state.newCat.type==="scale"?" active":""}" onclick="setNewCatType('scale')">⭐ 1–5</button>
       <button class="type-btn${state.newCat.type==="number"?" active":""}" onclick="setNewCatType('number')">🔢 Number</button>
+      <button class="type-btn${state.newCat.type==="yesno"?" active":""}" onclick="setNewCatType('yesno')">✓ Yes/No</button>
     </div>
     <button class="add-submit" onclick="addCategory()">Add Category</button>
   </div>
@@ -323,7 +355,7 @@ function renderSettings() {
       <span style="font-size:20px">${cat.emoji}</span>
       <div class="existing-info">
         <div class="existing-name">${cat.name}</div>
-        <div class="existing-type">${cat.type==="scale"?"Scale 1–5":"Number"}</div>
+        <div class="existing-type">${cat.type==="scale"?"Scale 1–5":cat.type==="yesno"?"Yes / No":"Number"}</div>
       </div>
       <button class="delete-btn" onclick="deleteCategory('${cat.id}')">×</button>
     </div>`;
@@ -335,6 +367,10 @@ function attachEvents() {}
 
 // Actions
 function setScale(catId, val) {
+  state.todayValues[catId] = val;
+  render();
+}
+function setYesNo(catId, val) {
   state.todayValues[catId] = val;
   render();
 }
