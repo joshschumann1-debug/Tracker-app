@@ -48,21 +48,23 @@
   .bar-chart{background:#12121f;border-radius:16px;padding:16px;border:1px solid #1e1e2e;}
   .bar-chart-label{font-size:13px;color:#666;margin-bottom:12px;}
   .bars{display:flex;align-items:flex-end;gap:3px;height:100px;}
-  .bar{flex:1;border-radius:3px 3px 0 0;min-height:4px;transition:height 0.3s;cursor:pointer;}
+  .bar{flex:1;border-radius:3px 3px 0 0;min-height:4px;transition:height 0.3s;}
   .bar-dates{display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:#444;}
   .log-entry{background:#12121f;border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid #1e1e2e;}
-  .log-date{font-size:13px;font-weight:700;color:#888;margin-bottom:10px;}
+  .log-date{font-size:13px;font-weight:700;color:#888;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+  .edit-day-btn{background:none;border:1px solid #333;border-radius:8px;color:#666;font-size:11px;padding:3px 8px;cursor:pointer;font-family:'DM Sans',sans-serif;}
   .log-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
   .log-emoji{font-size:16px;}
   .log-name{flex:1;font-size:14px;color:#bbb;}
   .dots{display:flex;gap:4px;align-items:center;}
-  .dot{border-radius:50%;transition:all 0.2s;}
+  .dot{border-radius:50%;}
   .add-card{background:#12121f;border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid #6C63FF44;}
   .add-title{font-size:13px;font-weight:700;color:#6C63FF;margin-bottom:12px;}
   .emoji-btn{background:#1e1e2e;border:none;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:22px;}
   .emoji-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;background:#1e1e2e;border-radius:12px;padding:10px;}
   .emoji-pick{background:none;border:none;font-size:22px;cursor:pointer;padding:2px;}
   .text-input{width:100%;background:#1e1e2e;border:none;border-radius:10px;padding:10px 12px;color:#fff;font-size:15px;outline:none;margin-bottom:10px;font-family:'DM Sans',sans-serif;}
+  .date-input{width:100%;background:#1e1e2e;border:none;border-radius:10px;padding:10px 12px;color:#fff;font-size:15px;outline:none;margin-bottom:14px;font-family:'DM Sans',sans-serif;color-scheme:dark;}
   .type-row{display:flex;gap:8px;margin-bottom:14px;}
   .type-btn{flex:1;padding:9px;border-radius:10px;border:none;background:#1e1e2e;color:#777;font-weight:600;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;}
   .type-btn.active{background:#6C63FF;color:#fff;}
@@ -75,6 +77,15 @@
   .delete-btn{background:none;border:none;color:#ff5e5e;font-size:22px;cursor:pointer;padding:4px;line-height:1;}
   .empty{text-align:center;color:#555;margin-top:60px;line-height:1.8;}
   .empty a{color:#6C63FF;cursor:pointer;text-decoration:none;}
+  .export-btn{width:100%;padding:13px;border-radius:14px;border:1px solid #2a2a3e;background:#12121f;color:#888;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .missed-banner{background:#12121f;border:1px solid #2a2a4e;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+  .missed-text{font-size:13px;color:#777;}
+  .missed-btn{background:#6C63FF22;border:1px solid #6C63FF55;border-radius:8px;color:#6C63FF;font-size:12px;font-weight:700;padding:5px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  .modal-overlay{position:fixed;inset:0;background:#000000bb;z-index:100;display:flex;align-items:flex-end;justify-content:center;}
+  .modal{background:#12121f;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:430px;max-height:85vh;overflow-y:auto;border-top:1px solid #2a2a3e;}
+  .modal-title{font-size:17px;font-weight:800;color:#fff;margin-bottom:4px;}
+  .modal-sub{font-size:13px;color:#666;margin-bottom:16px;}
+  .modal-close{float:right;background:none;border:none;color:#666;font-size:26px;cursor:pointer;line-height:1;margin-top:-4px;}
 </style>
 </head>
 <body>
@@ -85,324 +96,291 @@
   </div>
   <div class="content" id="content"></div>
   <nav class="bottom-nav">
-    <button class="nav-btn active" onclick="setTab('today')" id="nav-today">
-      <span>📋</span><span>Today</span>
-    </button>
-    <button class="nav-btn" onclick="setTab('history')" id="nav-history">
-      <span>📈</span><span>History</span>
-    </button>
-    <button class="nav-btn" onclick="setTab('settings')" id="nav-settings">
-      <span>⚙️</span><span>Settings</span>
-    </button>
+    <button class="nav-btn active" onclick="setTab('today')" id="nav-today"><span>📋</span><span>Today</span></button>
+    <button class="nav-btn" onclick="setTab('history')" id="nav-history"><span>📈</span><span>History</span></button>
+    <button class="nav-btn" onclick="setTab('settings')" id="nav-settings"><span>⚙️</span><span>Settings</span></button>
   </nav>
+  <div id="modal-container"></div>
 </div>
-
 <script>
-const ACCENT_COLORS = ["#6C63FF","#FF6B6B","#FFD23F","#74c69d","#FF9A3C","#4ecdc4","#A78BFA"];
-const EMOJIS = ["😊","⚡","🌙","💪","🧠","❤️","🏃","🍎","💧","📚","🎯","✨","🔥","🌿","🎵"];
-const DEFAULT_CATS = [
-  {id:"1",name:"Mood",type:"scale",emoji:"😊"},
-  {id:"2",name:"Energy",type:"scale",emoji:"⚡"},
-  {id:"3",name:"Sleep hours",type:"number",emoji:"🌙"},
-];
+const ACCENT_COLORS=["#6C63FF","#FF6B6B","#FFD23F","#74c69d","#FF9A3C","#4ecdc4","#A78BFA"];
+const EMOJIS=["😊","⚡","🌙","💪","🧠","❤️","🏃","🍎","💧","📚","🎯","✨","🔥","🌿","🎵"];
+const DEFAULT_CATS=[{id:"1",name:"Mood",type:"scale",emoji:"😊"},{id:"2",name:"Energy",type:"scale",emoji:"⚡"},{id:"3",name:"Sleep hours",type:"number",emoji:"🌙"}];
 
-let state = {
-  tab: "today",
-  categories: [],
-  entries: {},
-  todayValues: {},
-  saved: false,
-  historyView: "chart",
-  selectedCat: null,
-  showEmojiPicker: false,
-  newCat: {name:"",type:"scale",emoji:"✨"},
-};
+let state={tab:"today",categories:[],entries:{},todayValues:{},saved:false,historyView:"log",selectedCat:null,showEmojiPicker:false,newCat:{name:"",type:"scale",emoji:"✨"},modal:null};
 
-function load() {
-  try {
-    const cats = localStorage.getItem("tracker_categories");
-    const ents = localStorage.getItem("tracker_entries");
-    state.categories = cats ? JSON.parse(cats) : DEFAULT_CATS;
-    state.entries = ents ? JSON.parse(ents) : {};
-    const today = todayKey();
-    if (state.entries[today]) state.todayValues = {...state.entries[today]};
-    if (state.categories.length > 0) state.selectedCat = state.categories[0].id;
-  } catch(e) {
-    state.categories = DEFAULT_CATS;
-  }
+function load(){
+  try{
+    const cats=localStorage.getItem("tracker_categories");
+    const ents=localStorage.getItem("tracker_entries");
+    state.categories=cats?JSON.parse(cats):DEFAULT_CATS;
+    state.entries=ents?JSON.parse(ents):{};
+    const today=todayKey();
+    if(state.entries[today])state.todayValues={...state.entries[today]};
+    if(state.categories.length>0)state.selectedCat=state.categories[0].id;
+  }catch(e){state.categories=DEFAULT_CATS;}
 }
+function saveCategories(){localStorage.setItem("tracker_categories",JSON.stringify(state.categories));}
+function saveEntries(){localStorage.setItem("tracker_entries",JSON.stringify(state.entries));}
+function todayKey(){return new Date().toISOString().split("T")[0];}
+function formatDate(d){return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
+function catColor(i){return ACCENT_COLORS[i%ACCENT_COLORS.length];}
+function getLast30Days(){const days=[];for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().split("T")[0]);}return days;}
 
-function saveCategories() {
-  localStorage.setItem("tracker_categories", JSON.stringify(state.categories));
-}
-
-function saveEntries() {
-  localStorage.setItem("tracker_entries", JSON.stringify(state.entries));
-}
-
-function todayKey() {
-  return new Date().toISOString().split("T")[0];
-}
-
-function formatDate(d) {
-  return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
-}
-
-function catColor(i) { return ACCENT_COLORS[i % ACCENT_COLORS.length]; }
-
-function getLast30Days() {
-  const days = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate()-i);
-    days.push(d.toISOString().split("T")[0]);
-  }
-  return days;
-}
-
-function setTab(tab) {
-  state.tab = tab;
-  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+function setTab(tab){
+  state.tab=tab;
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
   document.getElementById("nav-"+tab).classList.add("active");
   render();
 }
 
-function render() {
-  const titles = {today:"📋 Today", history:"📈 History", settings:"⚙️ Settings"};
-  document.getElementById("header-title").textContent = titles[state.tab];
-  document.getElementById("header-sub").textContent = state.tab === "today" ? formatDate(todayKey()) : "";
-  const c = document.getElementById("content");
-  if (state.tab === "today") c.innerHTML = renderToday();
-  else if (state.tab === "history") c.innerHTML = renderHistory();
-  else c.innerHTML = renderSettings();
-  attachEvents();
+function render(){
+  const titles={today:"📋 Today",history:"📈 History",settings:"⚙️ Settings"};
+  document.getElementById("header-title").textContent=titles[state.tab];
+  document.getElementById("header-sub").textContent=state.tab==="today"?formatDate(todayKey()):"";
+  const c=document.getElementById("content");
+  if(state.tab==="today")c.innerHTML=renderToday();
+  else if(state.tab==="history")c.innerHTML=renderHistory();
+  else c.innerHTML=renderSettings();
+  renderModal();
 }
 
-function renderToday() {
-  if (state.categories.length === 0) {
-    return `<div class="empty">No categories yet.<br><a onclick="setTab('settings')">Add one in Settings →</a></div>`;
+function renderInputs(cat,values,prefix){
+  const val=values[cat.id];
+  if(cat.type==="scale"){
+    let h=`<div class="scale-input">`;
+    for(let n=1;n<=5;n++)h+=`<button class="scale-btn${val===n?" active":""}" onclick="${prefix}Scale('${cat.id}',${n})">${n}</button>`;
+    return h+`</div>`;
+  }else if(cat.type==="yesno"){
+    return`<div class="yesno-input">
+      <button class="yesno-btn yes${val===true?" active":""}" onclick="${prefix}YesNo('${cat.id}',true)">✓ Yes</button>
+      <button class="yesno-btn no${val===false?" active":""}" onclick="${prefix}YesNo('${cat.id}',false)">✗ No</button>
+    </div>`;
+  }else{
+    return`<input class="num-input" type="number" placeholder="Enter value..." value="${val??""}" oninput="${prefix}Num('${cat.id}',this.value)"/>`;
   }
-  let html = "";
-  state.categories.forEach((cat, i) => {
-    const val = state.todayValues[cat.id];
-    html += `<div class="card">
-      <div class="card-header">
-        <span class="emoji">${cat.emoji}</span>
-        <span class="name">${cat.name}</span>
-        <span class="badge">${cat.type==="scale"?"1–5":cat.type==="yesno"?"yes/no":"number"}</span>
-      </div>`;
-    if (cat.type === "scale") {
-      html += `<div class="scale-input">`;
-      for (let n = 1; n <= 5; n++) {
-        html += `<button class="scale-btn${val===n?" active":""}" onclick="setScale('${cat.id}',${n})">${n}</button>`;
-      }
-      html += `</div>`;
-    } else if (cat.type === "yesno") {
-      html += `<div class="yesno-input">
-        <button class="yesno-btn yes${val===true?" active":""}" onclick="setYesNo('${cat.id}',true)">✓ Yes</button>
-        <button class="yesno-btn no${val===false?" active":""}" onclick="setYesNo('${cat.id}',false)">✗ No</button>
-      </div>`;
-    } else {
-      html += `<input class="num-input" type="number" placeholder="Enter value..." value="${val??""}" oninput="setNum('${cat.id}',this.value)"/>`;
-    }
-    html += `</div>`;
+}
+
+function renderToday(){
+  if(state.categories.length===0)return`<div class="empty">No categories yet.<br><a onclick="setTab('settings')">Add one in Settings →</a></div>`;
+  let html=`<div class="missed-banner"><span class="missed-text">Missed a day?</span><button class="missed-btn" onclick="openMissedDay()">+ Log a Past Day</button></div>`;
+  state.categories.forEach((cat,i)=>{
+    html+=`<div class="card"><div class="card-header"><span class="emoji">${cat.emoji}</span><span class="name">${cat.name}</span><span class="badge">${cat.type==="scale"?"1–5":cat.type==="yesno"?"yes/no":"number"}</span></div>${renderInputs(cat,state.todayValues,"today")}</div>`;
   });
-  html += `<button class="save-btn${state.saved?" saved":""}" onclick="saveToday()">${state.saved?"✓ Saved!":"Save Today's Log"}</button>`;
+  html+=`<button class="save-btn${state.saved?" saved":""}" onclick="saveToday()">${state.saved?"✓ Saved!":"Save Today's Log"}</button>`;
   return html;
 }
 
-function renderHistory() {
-  const days = getLast30Days();
-  let html = `<div class="tab-row">
+function renderHistory(){
+  const days=getLast30Days();
+  let html=`<div class="tab-row">
     <button class="tab-btn${state.historyView==="chart"?" active":""}" onclick="setHistoryView('chart')">📊 Charts</button>
     <button class="tab-btn${state.historyView==="log"?" active":""}" onclick="setHistoryView('log')">📅 Log</button>
   </div>`;
 
-  if (state.historyView === "chart") {
-    html += `<div class="cat-pills">`;
-    state.categories.forEach((cat, i) => {
-      const isActive = (state.selectedCat || state.categories[0]?.id) === cat.id;
-      html += `<button class="cat-pill" style="background:${isActive?catColor(i):"#1e1e2e"}" onclick="selectCat('${cat.id}')">${cat.emoji} ${cat.name}</button>`;
+  if(state.historyView==="chart"){
+    html+=`<div class="cat-pills">`;
+    state.categories.forEach((cat,i)=>{
+      const isActive=(state.selectedCat||state.categories[0]?.id)===cat.id;
+      html+=`<button class="cat-pill" style="background:${isActive?catColor(i):"#1e1e2e"}" onclick="selectCat('${cat.id}')">${cat.emoji} ${cat.name}</button>`;
     });
-    html += `</div>`;
-
-    const cat = state.categories.find(c => c.id === (state.selectedCat || state.categories[0]?.id));
-    if (cat) {
-      const catIdx = state.categories.indexOf(cat);
-      const color = catColor(catIdx);
-      const data = days.map(d => ({date:d, value: state.entries[d]?.[cat.id] ?? null}));
-      const filled = data.filter(d => d.value !== null).map(d => d.value);
-      let avg, max, min, chartMax;
-      if (cat.type === "yesno") {
-        const yesCount = filled.filter(v => v === true).length;
-        avg = filled.length ? yesCount+"/"+ filled.length : "–";
-        max = "–"; min = "–"; chartMax = 1;
-      } else {
-        avg = filled.length ? (filled.reduce((a,b)=>a+b,0)/filled.length).toFixed(1) : "–";
-        max = filled.length ? Math.max(...filled) : "–";
-        min = filled.length ? Math.min(...filled) : "–";
-        chartMax = cat.type === "scale" ? 5 : (filled.length ? Math.max(...filled)*1.2 : 1);
-      }
-
-      html += `<div class="stats-row">
-        ${[["Avg",avg],["High",max],["Low",min]].map(([l,v])=>`
-          <div class="stat-box">
-            <div class="stat-label">${l}</div>
-            <div class="stat-val" style="color:${color}">${v}</div>
-          </div>`).join("")}
-      </div>`;
-
-      html += `<div class="bar-chart">
-        <div class="bar-chart-label">Last 30 days</div>
-        <div class="bars">`;
-      data.forEach(d => {
-        const hasVal = d.value !== null;
-        let h, barColor;
-        if (cat.type === "yesno") {
-          h = hasVal ? 100 : 4;
-          barColor = hasVal ? (d.value === true ? "#74c69d" : "#ff5e5e") : "#1e1e2e";
-        } else {
-          h = hasVal ? Math.max((d.value/chartMax)*100,4) : 4;
-          barColor = hasVal ? color : "#1e1e2e";
-        }
-        html += `<div class="bar" style="height:${h}%;background:${barColor};opacity:${hasVal?1:0.4}" title="${hasVal?d.date+": "+(cat.type==="yesno"?(d.value?"Yes":"No"):d.value):"No data"}"></div>`;
+    html+=`</div>`;
+    const cat=state.categories.find(c=>c.id===(state.selectedCat||state.categories[0]?.id));
+    if(cat){
+      const ci=state.categories.indexOf(cat),color=catColor(ci);
+      const data=days.map(d=>({date:d,value:state.entries[d]?.[cat.id]??null}));
+      const filled=data.filter(d=>d.value!==null).map(d=>d.value);
+      let avg,max,min,chartMax;
+      if(cat.type==="yesno"){const y=filled.filter(v=>v===true).length;avg=filled.length?y+"/"+filled.length:"–";max="–";min="–";chartMax=1;}
+      else{avg=filled.length?(filled.reduce((a,b)=>a+b,0)/filled.length).toFixed(1):"–";max=filled.length?Math.max(...filled):"–";min=filled.length?Math.min(...filled):"–";chartMax=cat.type==="scale"?5:(filled.length?Math.max(...filled)*1.2:1);}
+      html+=`<div class="stats-row">${[["Avg",avg],["High",max],["Low",min]].map(([l,v])=>`<div class="stat-box"><div class="stat-label">${l}</div><div class="stat-val" style="color:${color}">${v}</div></div>`).join("")}</div>`;
+      html+=`<div class="bar-chart"><div class="bar-chart-label">Last 30 days</div><div class="bars">`;
+      data.forEach(d=>{
+        const hv=d.value!==null;
+        let h,bc;
+        if(cat.type==="yesno"){h=hv?100:4;bc=hv?(d.value===true?"#74c69d":"#ff5e5e"):"#1e1e2e";}
+        else{h=hv?Math.max((d.value/chartMax)*100,4):4;bc=hv?color:"#1e1e2e";}
+        html+=`<div class="bar" style="height:${h}%;background:${bc};opacity:${hv?1:0.4}"></div>`;
       });
-      html += `</div>
-        <div class="bar-dates">
-          <span>${formatDate(days[0]).split(" ").slice(0,2).join(" ")}</span>
-          <span>Today</span>
-        </div>
-      </div>`;
+      html+=`</div><div class="bar-dates"><span>${formatDate(days[0]).split(" ").slice(0,2).join(" ")}</span><span>Today</span></div></div>`;
     }
-
-    if (state.categories.length === 0) html += `<div class="empty">No categories yet.</div>`;
+    if(state.categories.length===0)html+=`<div class="empty">No categories yet.</div>`;
   }
 
-  if (state.historyView === "log") {
-    const sorted = [...days].reverse();
-    let hasAny = false;
-    sorted.forEach(day => {
-      const d = state.entries[day];
-      if (!d || !Object.keys(d).length) return;
-      hasAny = true;
-      html += `<div class="log-entry"><div class="log-date">${formatDate(day)}</div>`;
-      state.categories.forEach((cat, i) => {
-        const val = d[cat.id];
-        if (val === undefined || val === null || val === "") return;
-        if (cat.type === "yesno") {
-          html += `<div class="log-row">
-            <span class="log-emoji">${cat.emoji}</span>
-            <span class="log-name">${cat.name}</span>
-            <span style="font-weight:700;font-size:14px;color:${val===true?"#74c69d":"#ff5e5e"}">${val===true?"✓ Yes":"✗ No"}</span>
-          </div>`;
-        } else if (cat.type === "scale") {
-          const colors = ["#ff5e5e","#ff9a3c","#ffd23f","#74c69d","#6C63FF"];
-          const dotColor = colors[val-1];
-          let dots = "";
-          for (let n=1;n<=5;n++) {
-            const sz = n<=val?"10px":"8px";
-            dots += `<div class="dot" style="width:${sz};height:${sz};background:${n<=val?dotColor:"#333"}"></div>`;
-          }
-          html += `<div class="log-row">
-            <span class="log-emoji">${cat.emoji}</span>
-            <span class="log-name">${cat.name}</span>
-            <div class="dots">${dots}</div>
-          </div>`;
-        } else {
-          html += `<div class="log-row">
-            <span class="log-emoji">${cat.emoji}</span>
-            <span class="log-name">${cat.name}</span>
-            <span style="font-weight:700;color:${catColor(i)};font-size:15px">${val}</span>
-          </div>`;
+  if(state.historyView==="log"){
+    html+=`<button class="export-btn" onclick="exportPDF()">📄 Download All Data as PDF</button>`;
+    const allDays=Object.keys(state.entries).sort().reverse();
+    let hasAny=false;
+    allDays.forEach(day=>{
+      const d=state.entries[day];
+      if(!d||!Object.keys(d).length)return;
+      hasAny=true;
+      html+=`<div class="log-entry"><div class="log-date"><span>${formatDate(day)}</span><button class="edit-day-btn" onclick="openEditDay('${day}')">✏️ Edit</button></div>`;
+      state.categories.forEach((cat,i)=>{
+        const val=d[cat.id];
+        if(val===undefined||val===null||val==="")return;
+        if(cat.type==="yesno"){
+          html+=`<div class="log-row"><span class="log-emoji">${cat.emoji}</span><span class="log-name">${cat.name}</span><span style="font-weight:700;font-size:14px;color:${val===true?"#74c69d":"#ff5e5e"}">${val===true?"✓ Yes":"✗ No"}</span></div>`;
+        }else if(cat.type==="scale"){
+          const cols=["#ff5e5e","#ff9a3c","#ffd23f","#74c69d","#6C63FF"];
+          let dots="";
+          for(let n=1;n<=5;n++){const sz=n<=val?"10px":"8px";dots+=`<div class="dot" style="width:${sz};height:${sz};background:${n<=val?cols[val-1]:"#333"}"></div>`;}
+          html+=`<div class="log-row"><span class="log-emoji">${cat.emoji}</span><span class="log-name">${cat.name}</span><div class="dots">${dots}</div></div>`;
+        }else{
+          html+=`<div class="log-row"><span class="log-emoji">${cat.emoji}</span><span class="log-name">${cat.name}</span><span style="font-weight:700;color:${catColor(i)};font-size:15px">${val}</span></div>`;
         }
       });
-      html += `</div>`;
+      html+=`</div>`;
     });
-    if (!hasAny) html += `<div class="empty">No entries yet.<br>Start logging on the Today tab!</div>`;
+    if(!hasAny)html+=`<div class="empty">No entries yet.<br>Start logging on the Today tab!</div>`;
   }
-
   return html;
 }
 
-function renderSettings() {
-  let html = `<div style="font-size:13px;color:#666;margin-bottom:16px;">Add categories to track. Each can be a 1–5 scale or a free number.</div>
-  <div class="add-card">
-    <div class="add-title">+ New Category</div>
-    <div style="margin-bottom:10px">
-      <button class="emoji-btn" onclick="toggleEmojiPicker()">${state.newCat.emoji}</button>`;
-  if (state.showEmojiPicker) {
-    html += `<div class="emoji-grid">`;
-    EMOJIS.forEach(e => {
-      html += `<button class="emoji-pick" onclick="pickEmoji('${e}')">${e}</button>`;
-    });
-    html += `</div>`;
-  }
-  html += `</div>
-    <input class="text-input" type="text" placeholder="Category name (e.g. Mood, Steps...)" value="${state.newCat.name}" oninput="setNewCatName(this.value)"/>
-    <div class="type-row">
-      <button class="type-btn${state.newCat.type==="scale"?" active":""}" onclick="setNewCatType('scale')">⭐ 1–5</button>
-      <button class="type-btn${state.newCat.type==="number"?" active":""}" onclick="setNewCatType('number')">🔢 Number</button>
-      <button class="type-btn${state.newCat.type==="yesno"?" active":""}" onclick="setNewCatType('yesno')">✓ Yes/No</button>
-    </div>
-    <button class="add-submit" onclick="addCategory()">Add Category</button>
+function renderSettings(){
+  let html=`<div style="font-size:13px;color:#666;margin-bottom:16px;">Add categories to track.</div>
+  <div class="add-card"><div class="add-title">+ New Category</div>
+  <div style="margin-bottom:10px"><button class="emoji-btn" onclick="toggleEmojiPicker()">${state.newCat.emoji}</button>`;
+  if(state.showEmojiPicker){html+=`<div class="emoji-grid">`;EMOJIS.forEach(e=>{html+=`<button class="emoji-pick" onclick="pickEmoji('${e}')">${e}</button>`;});html+=`</div>`;}
+  html+=`</div><input class="text-input" type="text" placeholder="Category name..." value="${state.newCat.name}" oninput="setNewCatName(this.value)"/>
+  <div class="type-row">
+    <button class="type-btn${state.newCat.type==="scale"?" active":""}" onclick="setNewCatType('scale')">⭐ 1–5</button>
+    <button class="type-btn${state.newCat.type==="number"?" active":""}" onclick="setNewCatType('number')">🔢 Number</button>
+    <button class="type-btn${state.newCat.type==="yesno"?" active":""}" onclick="setNewCatType('yesno')">✓ Yes/No</button>
   </div>
+  <button class="add-submit" onclick="addCategory()">Add Category</button></div>
   <div class="existing-label">Your categories</div>`;
-
-  if (state.categories.length === 0) {
-    html += `<div style="text-align:center;color:#444;padding:20px 0">No categories yet.</div>`;
-  }
-  state.categories.forEach((cat, i) => {
-    html += `<div class="existing-item">
-      <span style="font-size:20px">${cat.emoji}</span>
-      <div class="existing-info">
-        <div class="existing-name">${cat.name}</div>
-        <div class="existing-type">${cat.type==="scale"?"Scale 1–5":cat.type==="yesno"?"Yes / No":"Number"}</div>
-      </div>
-      <button class="delete-btn" onclick="deleteCategory('${cat.id}')">×</button>
-    </div>`;
+  if(state.categories.length===0)html+=`<div style="text-align:center;color:#444;padding:20px 0">No categories yet.</div>`;
+  state.categories.forEach((cat,i)=>{
+    html+=`<div class="existing-item"><span style="font-size:20px">${cat.emoji}</span><div class="existing-info"><div class="existing-name">${cat.name}</div><div class="existing-type">${cat.type==="scale"?"Scale 1–5":cat.type==="yesno"?"Yes / No":"Number"}</div></div><button class="delete-btn" onclick="deleteCategory('${cat.id}')">×</button></div>`;
   });
   return html;
 }
 
-function attachEvents() {}
+// ── MODAL ───────────────────────────────
+function renderModal(){
+  const mc=document.getElementById("modal-container");
+  if(!state.modal){mc.innerHTML="";return;}
+  const m=state.modal;
+  const isNew=m.type==="missedDay";
+  let inputs="";
+  state.categories.forEach(cat=>{
+    inputs+=`<div class="card" style="margin-bottom:10px"><div class="card-header"><span class="emoji">${cat.emoji}</span><span class="name">${cat.name}</span></div>${renderInputs(cat,m.values,"modal")}</div>`;
+  });
+  mc.innerHTML=`<div class="modal-overlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()">×</button>
+      <div class="modal-title">${isNew?"📅 Log a Past Day":"✏️ Edit Entry"}</div>
+      <div class="modal-sub">${isNew?"Pick a date and fill in your values":"Updating: "+formatDate(m.date)}</div>
+      ${isNew?`<input class="date-input" type="date" value="${m.date}" max="${todayKey()}" onchange="setModalDate(this.value)"/>`:""}
+      ${inputs}
+      <button class="save-btn" style="margin-top:8px" onclick="saveModal()">Save Entry</button>
+    </div>
+  </div>`;
+}
 
-// Actions
-function setScale(catId, val) {
-  state.todayValues[catId] = val;
+function closeModalOutside(e){if(e.target.classList.contains("modal-overlay"))closeModal();}
+function closeModal(){state.modal=null;render();}
+
+function openMissedDay(){
+  const y=new Date();y.setDate(y.getDate()-1);
+  const ds=y.toISOString().split("T")[0];
+  state.modal={type:"missedDay",date:ds,values:state.entries[ds]?{...state.entries[ds]}:{}};
   render();
 }
-function setYesNo(catId, val) {
-  state.todayValues[catId] = val;
+function openEditDay(ds){
+  state.modal={type:"editDay",date:ds,values:state.entries[ds]?{...state.entries[ds]}:{}};
   render();
 }
-function setNum(catId, val) {
-  state.todayValues[catId] = val === "" ? "" : parseFloat(val);
+function setModalDate(val){
+  state.modal.date=val;
+  state.modal.values=state.entries[val]?{...state.entries[val]}:{};
+  render();
 }
-function saveToday() {
-  const today = todayKey();
-  state.entries[today] = {...state.todayValues};
+function saveModal(){
+  const{date,values}=state.modal;
+  state.entries[date]={...values};
   saveEntries();
-  state.saved = true;
-  render();
-  setTimeout(() => { state.saved = false; render(); }, 2000);
-}
-function setHistoryView(v) { state.historyView = v; render(); }
-function selectCat(id) { state.selectedCat = id; render(); }
-function toggleEmojiPicker() { state.showEmojiPicker = !state.showEmojiPicker; render(); }
-function pickEmoji(e) { state.newCat.emoji = e; state.showEmojiPicker = false; render(); }
-function setNewCatName(v) { state.newCat.name = v; }
-function setNewCatType(t) { state.newCat.type = t; render(); }
-function addCategory() {
-  if (!state.newCat.name.trim()) return;
-  state.categories.push({...state.newCat, id: Date.now().toString()});
-  saveCategories();
-  if (!state.selectedCat) state.selectedCat = state.categories[0].id;
-  state.newCat = {name:"",type:"scale",emoji:"✨"};
+  if(date===todayKey())state.todayValues={...values};
+  state.modal=null;
   render();
 }
-function deleteCategory(id) {
-  state.categories = state.categories.filter(c => c.id !== id);
+
+// Modal inputs
+function modalScale(catId,val){state.modal.values[catId]=val;render();}
+function modalYesNo(catId,val){state.modal.values[catId]=val;render();}
+function modalNum(catId,val){state.modal.values[catId]=val===""?"":parseFloat(val);}
+
+// Today inputs
+function todayScale(catId,val){state.todayValues[catId]=val;render();}
+function todayYesNo(catId,val){state.todayValues[catId]=val;render();}
+function todayNum(catId,val){state.todayValues[catId]=val===""?"":parseFloat(val);}
+
+function saveToday(){
+  const today=todayKey();
+  state.entries[today]={...state.todayValues};
+  saveEntries();
+  state.saved=true;
+  render();
+  setTimeout(()=>{state.saved=false;render();},2000);
+}
+
+// ── PDF EXPORT ───────────────────────────
+function exportPDF(){
+  const allDays=Object.keys(state.entries).sort();
+  if(!allDays.length){alert("No data to export yet.");return;}
+  let rows="";
+  allDays.forEach(day=>{
+    const d=state.entries[day];
+    if(!d||!Object.keys(d).length)return;
+    let cells=`<td style="padding:8px 12px;font-weight:600;color:#444;border-bottom:1px solid #eee;white-space:nowrap">${formatDate(day)}</td>`;
+    state.categories.forEach(cat=>{
+      const val=d[cat.id];
+      let display="–";
+      if(val!==undefined&&val!==null&&val!==""){
+        if(cat.type==="yesno")display=val===true?"✓ Yes":"✗ No";
+        else if(cat.type==="scale")display=`${val} / 5`;
+        else display=val;
+      }
+      cells+=`<td style="padding:8px 12px;text-align:center;border-bottom:1px solid #eee">${display}</td>`;
+    });
+    rows+=`<tr>${cells}</tr>`;
+  });
+  let headers=`<th style="padding:10px 12px;text-align:left;background:#f0eeff;color:#6C63FF;border-bottom:2px solid #6C63FF">Date</th>`;
+  state.categories.forEach(cat=>{headers+=`<th style="padding:10px 12px;text-align:center;background:#f0eeff;color:#6C63FF;border-bottom:2px solid #6C63FF">${cat.emoji} ${cat.name}</th>`;});
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Tracker Export</title>
+  <style>body{font-family:sans-serif;padding:30px;color:#222;max-width:1000px;margin:0 auto}h1{color:#6C63FF;margin-bottom:4px}p{color:#999;font-size:13px;margin-bottom:24px}table{border-collapse:collapse;width:100%;font-size:14px}tr:hover{background:#fafafa}@media print{body{padding:10px}}</style>
+  </head><body>
+  <h1>📋 Tracker Data Export</h1>
+  <p>Generated ${formatDate(todayKey())} &nbsp;·&nbsp; ${allDays.length} days logged &nbsp;·&nbsp; ${state.categories.length} categories</p>
+  <table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>
+  </body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+  const w=window.open(url,"_blank");
+  if(w){setTimeout(()=>{w.print();},800);}
+  else{const a=document.createElement("a");a.href=url;a.download="tracker-export.html";a.click();}
+}
+
+// ── OTHER ────────────────────────────────
+function setHistoryView(v){state.historyView=v;render();}
+function selectCat(id){state.selectedCat=id;render();}
+function toggleEmojiPicker(){state.showEmojiPicker=!state.showEmojiPicker;render();}
+function pickEmoji(e){state.newCat.emoji=e;state.showEmojiPicker=false;render();}
+function setNewCatName(v){state.newCat.name=v;}
+function setNewCatType(t){state.newCat.type=t;render();}
+function addCategory(){
+  if(!state.newCat.name.trim())return;
+  state.categories.push({...state.newCat,id:Date.now().toString()});
   saveCategories();
-  if (state.selectedCat === id) state.selectedCat = state.categories[0]?.id || null;
+  if(!state.selectedCat)state.selectedCat=state.categories[0].id;
+  state.newCat={name:"",type:"scale",emoji:"✨"};
+  render();
+}
+function deleteCategory(id){
+  state.categories=state.categories.filter(c=>c.id!==id);
+  saveCategories();
+  if(state.selectedCat===id)state.selectedCat=state.categories[0]?.id||null;
   render();
 }
 
