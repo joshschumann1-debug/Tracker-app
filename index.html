@@ -8,7 +8,7 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{background:#0d0d1a;color:#eee;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;justify-content:center;}
-  #app{width:100%;max-width:430px;min-height:100vh;display:flex;flex-direction:column;position:relative;}
+  #app{width:100%;max-width:430px;min-height:100vh;display:flex;flex-direction:column;}
   .header{padding:20px 20px 12px;border-bottom:1px solid #1e1e2e;background:#0d0d1a;position:sticky;top:0;z-index:10;}
   .header h1{font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#fff;}
   .header p{font-size:13px;color:#666;margin-top:2px;}
@@ -58,6 +58,10 @@
   .log-name{flex:1;font-size:14px;color:#bbb;}
   .dots{display:flex;gap:4px;align-items:center;}
   .dot{border-radius:50%;}
+  .log-note{margin-top:8px;padding-top:8px;border-top:1px solid #1e1e2e;}
+  .log-note-text{font-size:13px;color:#aaa;line-height:1.5;font-style:italic;}
+  .log-note-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+  .log-note-tag{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;}
   .add-card{background:#12121f;border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid #6C63FF44;}
   .add-title{font-size:13px;font-weight:700;color:#6C63FF;margin-bottom:12px;}
   .emoji-btn{background:#1e1e2e;border:none;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:22px;}
@@ -81,6 +85,19 @@
   .missed-banner{background:#12121f;border:1px solid #2a2a4e;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
   .missed-text{font-size:13px;color:#777;}
   .missed-btn{background:#6C63FF22;border:1px solid #6C63FF55;border-radius:8px;color:#6C63FF;font-size:12px;font-weight:700;padding:5px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  /* Note card */
+  .note-card{background:#12121f;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid #2a2a1e;}
+  .note-card-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .note-card-title{font-weight:700;font-size:15px;color:#fff;}
+  .note-textarea{width:100%;background:#1e1e2e;border:none;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;outline:none;font-family:'DM Sans',sans-serif;resize:none;line-height:1.5;min-height:80px;}
+  .note-tags-label{font-size:12px;color:#555;margin:10px 0 6px;}
+  .note-tags-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .note-tag-btn{padding:5px 12px;border-radius:20px;border:2px solid transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+  .note-tag-btn.selected{border-color:currentColor;}
+  .note-tag-custom{display:flex;gap:6px;margin-top:4px;}
+  .note-tag-input{flex:1;background:#1e1e2e;border:none;border-radius:8px;padding:7px 10px;color:#fff;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;}
+  .note-tag-add{background:#6C63FF22;border:1px solid #6C63FF55;border-radius:8px;color:#6C63FF;font-size:12px;font-weight:700;padding:0 12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+  /* Modal */
   .modal-overlay{position:fixed;inset:0;background:#000000bb;z-index:100;display:flex;align-items:flex-end;justify-content:center;}
   .modal{background:#12121f;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:430px;max-height:85vh;overflow-y:auto;border-top:1px solid #2a2a3e;}
   .modal-title{font-size:17px;font-weight:800;color:#fff;margin-bottom:4px;}
@@ -106,8 +123,23 @@
 const ACCENT_COLORS=["#6C63FF","#FF6B6B","#FFD23F","#74c69d","#FF9A3C","#4ecdc4","#A78BFA"];
 const EMOJIS=["😊","⚡","🌙","💪","🧠","❤️","🏃","🍎","💧","📚","🎯","✨","🔥","🌿","🎵"];
 const DEFAULT_CATS=[{id:"1",name:"Mood",type:"scale",emoji:"😊"},{id:"2",name:"Energy",type:"scale",emoji:"⚡"},{id:"3",name:"Sleep hours",type:"number",emoji:"🌙"}];
+const PRESET_TAGS=[
+  {label:"😴 Poor sleep",color:"#4ecdc4"},
+  {label:"🏃 Exercised",color:"#74c69d"},
+  {label:"🍔 Bad diet",color:"#FF9A3C"},
+  {label:"😰 Stressed",color:"#FF6B6B"},
+  {label:"🧘 Relaxed",color:"#A78BFA"},
+  {label:"🤒 Unwell",color:"#FFD23F"},
+  {label:"👥 Social",color:"#6C63FF"},
+  {label:"💼 Busy day",color:"#FF6B6B"},
+];
 
-let state={tab:"today",categories:[],entries:{},todayValues:{},saved:false,historyView:"log",selectedCat:null,showEmojiPicker:false,newCat:{name:"",type:"scale",emoji:"✨"},modal:null};
+let state={
+  tab:"today",categories:[],entries:{},todayValues:{},
+  todayNote:"",todayTags:[],todayTagInput:"",
+  saved:false,historyView:"log",selectedCat:null,
+  showEmojiPicker:false,newCat:{name:"",type:"scale",emoji:"✨"},modal:null
+};
 
 function load(){
   try{
@@ -116,7 +148,11 @@ function load(){
     state.categories=cats?JSON.parse(cats):DEFAULT_CATS;
     state.entries=ents?JSON.parse(ents):{};
     const today=todayKey();
-    if(state.entries[today])state.todayValues={...state.entries[today]};
+    if(state.entries[today]){
+      state.todayValues={...state.entries[today]};
+      state.todayNote=state.entries[today].__note||"";
+      state.todayTags=state.entries[today].__tags||[];
+    }
     if(state.categories.length>0)state.selectedCat=state.categories[0].id;
   }catch(e){state.categories=DEFAULT_CATS;}
 }
@@ -161,16 +197,66 @@ function renderInputs(cat,values,prefix){
   }
 }
 
+// ── NOTE CARD ────────────────────────────────────────────────────
+function renderNoteCard(note,tags,prefix){
+  let tagButtons="";
+  PRESET_TAGS.forEach(t=>{
+    const sel=tags.includes(t.label);
+    tagButtons+=`<button class="note-tag-btn${sel?" selected":""}" style="background:${sel?t.color+"33":"#1e1e2e"};color:${t.color}" onclick="${prefix}ToggleTag('${escQ(t.label)}')">${t.label}</button>`;
+  });
+  // Custom tags (user-added ones not in presets)
+  tags.filter(tg=>!PRESET_TAGS.find(p=>p.label===tg)).forEach(tg=>{
+    tagButtons+=`<button class="note-tag-btn selected" style="background:#6C63FF33;color:#6C63FF" onclick="${prefix}ToggleTag('${escQ(tg)}')">${tg} ×</button>`;
+  });
+  return`<div class="note-card">
+    <div class="note-card-header"><span style="font-size:20px">📝</span><span class="note-card-title">Today's Note</span></div>
+    <textarea class="note-textarea" placeholder="How was your day? Any observations..." oninput="${prefix}NoteText(this.value)">${escHTML(note)}</textarea>
+    <div class="note-tags-label">Tags — tap to add</div>
+    <div class="note-tags-row">${tagButtons}</div>
+    <div class="note-tag-custom">
+      <input class="note-tag-input" type="text" placeholder="Custom tag..." id="${prefix}tagInput" value="${escHTML(state.todayTagInput||"")}" oninput="state.todayTagInput=this.value" onkeydown="if(event.key==='Enter'){${prefix}AddCustomTag();event.preventDefault();}"/>
+      <button class="note-tag-add" onclick="${prefix}AddCustomTag()">+ Add</button>
+    </div>
+  </div>`;
+}
+
+function renderModalNoteCard(note,tags){
+  let tagButtons="";
+  PRESET_TAGS.forEach(t=>{
+    const sel=tags.includes(t.label);
+    tagButtons+=`<button class="note-tag-btn${sel?" selected":""}" style="background:${sel?t.color+"33":"#1e1e2e"};color:${t.color}" onclick="modalToggleTag('${escQ(t.label)}')">${t.label}</button>`;
+  });
+  tags.filter(tg=>!PRESET_TAGS.find(p=>p.label===tg)).forEach(tg=>{
+    tagButtons+=`<button class="note-tag-btn selected" style="background:#6C63FF33;color:#6C63FF" onclick="modalToggleTag('${escQ(tg)}')">${tg} ×</button>`;
+  });
+  return`<div class="note-card" style="border-color:#2a2a3e">
+    <div class="note-card-header"><span style="font-size:20px">📝</span><span class="note-card-title">Note</span></div>
+    <textarea class="note-textarea" placeholder="Any notes for this day..." oninput="modalNoteText(this.value)">${escHTML(note)}</textarea>
+    <div class="note-tags-label">Tags</div>
+    <div class="note-tags-row">${tagButtons}</div>
+    <div class="note-tag-custom">
+      <input class="note-tag-input" type="text" placeholder="Custom tag..." id="modalTagInput" oninput="state.modal.tagInput=this.value" onkeydown="if(event.key==='Enter'){modalAddCustomTag();event.preventDefault();}"/>
+      <button class="note-tag-add" onclick="modalAddCustomTag()">+ Add</button>
+    </div>
+  </div>`;
+}
+
+function escHTML(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function escQ(s){return String(s||"").replace(/'/g,"\\'");}
+
+// ── TODAY ─────────────────────────────────────────────────────────
 function renderToday(){
   if(state.categories.length===0)return`<div class="empty">No categories yet.<br><a onclick="setTab('settings')">Add one in Settings →</a></div>`;
   let html=`<div class="missed-banner"><span class="missed-text">Missed a day?</span><button class="missed-btn" onclick="openMissedDay()">+ Log a Past Day</button></div>`;
-  state.categories.forEach((cat,i)=>{
+  state.categories.forEach(cat=>{
     html+=`<div class="card"><div class="card-header"><span class="emoji">${cat.emoji}</span><span class="name">${cat.name}</span><span class="badge">${cat.type==="scale"?"1–5":cat.type==="yesno"?"yes/no":"number"}</span></div>${renderInputs(cat,state.todayValues,"today")}</div>`;
   });
+  html+=renderNoteCard(state.todayNote,state.todayTags,"today");
   html+=`<button class="save-btn${state.saved?" saved":""}" onclick="saveToday()">${state.saved?"✓ Saved!":"Save Today's Log"}</button>`;
   return html;
 }
 
+// ── HISTORY ───────────────────────────────────────────────────────
 function renderHistory(){
   const days=getLast30Days();
   let html=`<div class="tab-row">
@@ -230,6 +316,23 @@ function renderHistory(){
           html+=`<div class="log-row"><span class="log-emoji">${cat.emoji}</span><span class="log-name">${cat.name}</span><span style="font-weight:700;color:${catColor(i)};font-size:15px">${val}</span></div>`;
         }
       });
+      // Show note + tags if present
+      const note=d.__note||"";
+      const tags=d.__tags||[];
+      if(note||tags.length){
+        html+=`<div class="log-note">`;
+        if(note)html+=`<div class="log-note-text">"${escHTML(note)}"</div>`;
+        if(tags.length){
+          html+=`<div class="log-note-tags">`;
+          tags.forEach(tg=>{
+            const preset=PRESET_TAGS.find(p=>p.label===tg);
+            const col=preset?preset.color:"#6C63FF";
+            html+=`<span class="log-note-tag" style="background:${col}22;color:${col}">${tg}</span>`;
+          });
+          html+=`</div>`;
+        }
+        html+=`</div>`;
+      }
       html+=`</div>`;
     });
     if(!hasAny)html+=`<div class="empty">No entries yet.<br>Start logging on the Today tab!</div>`;
@@ -237,6 +340,7 @@ function renderHistory(){
   return html;
 }
 
+// ── SETTINGS ──────────────────────────────────────────────────────
 function renderSettings(){
   let html=`<div style="font-size:13px;color:#666;margin-bottom:16px;">Add categories to track.</div>
   <div class="add-card"><div class="add-title">+ New Category</div>
@@ -257,7 +361,7 @@ function renderSettings(){
   return html;
 }
 
-// ── MODAL ───────────────────────────────
+// ── MODAL ──────────────────────────────────────────────────────────
 function renderModal(){
   const mc=document.getElementById("modal-container");
   if(!state.modal){mc.innerHTML="";return;}
@@ -267,6 +371,7 @@ function renderModal(){
   state.categories.forEach(cat=>{
     inputs+=`<div class="card" style="margin-bottom:10px"><div class="card-header"><span class="emoji">${cat.emoji}</span><span class="name">${cat.name}</span></div>${renderInputs(cat,m.values,"modal")}</div>`;
   });
+  inputs+=renderModalNoteCard(m.note||"",m.tags||[]);
   mc.innerHTML=`<div class="modal-overlay" onclick="closeModalOutside(event)">
     <div class="modal">
       <button class="modal-close" onclick="closeModal()">×</button>
@@ -285,23 +390,31 @@ function closeModal(){state.modal=null;render();}
 function openMissedDay(){
   const y=new Date();y.setDate(y.getDate()-1);
   const ds=y.toISOString().split("T")[0];
-  state.modal={type:"missedDay",date:ds,values:state.entries[ds]?{...state.entries[ds]}:{}};
+  const existing=state.entries[ds]||{};
+  state.modal={type:"missedDay",date:ds,values:{...existing},note:existing.__note||"",tags:[...(existing.__tags||[])],tagInput:""};
   render();
 }
 function openEditDay(ds){
-  state.modal={type:"editDay",date:ds,values:state.entries[ds]?{...state.entries[ds]}:{}};
+  const existing=state.entries[ds]||{};
+  state.modal={type:"editDay",date:ds,values:{...existing},note:existing.__note||"",tags:[...(existing.__tags||[])],tagInput:""};
   render();
 }
 function setModalDate(val){
+  const existing=state.entries[val]||{};
   state.modal.date=val;
-  state.modal.values=state.entries[val]?{...state.entries[val]}:{};
+  state.modal.values={...existing};
+  state.modal.note=existing.__note||"";
+  state.modal.tags=[...(existing.__tags||[])];
   render();
 }
 function saveModal(){
-  const{date,values}=state.modal;
-  state.entries[date]={...values};
+  const{date,values,note,tags}=state.modal;
+  const entry={...values};
+  if(note)entry.__note=note;
+  if(tags&&tags.length)entry.__tags=tags;
+  state.entries[date]=entry;
   saveEntries();
-  if(date===todayKey())state.todayValues={...values};
+  if(date===todayKey()){state.todayValues={...values};state.todayNote=note||"";state.todayTags=tags||[];}
   state.modal=null;
   render();
 }
@@ -310,29 +423,63 @@ function saveModal(){
 function modalScale(catId,val){state.modal.values[catId]=val;render();}
 function modalYesNo(catId,val){state.modal.values[catId]=val;render();}
 function modalNum(catId,val){state.modal.values[catId]=val===""?"":parseFloat(val);}
+function modalNoteText(v){state.modal.note=v;}
+function modalToggleTag(tag){
+  const tags=state.modal.tags;
+  const idx=tags.indexOf(tag);
+  if(idx>-1)tags.splice(idx,1);else tags.push(tag);
+  render();
+}
+function modalAddCustomTag(){
+  const inp=document.getElementById("modalTagInput");
+  const val=(inp?inp.value:state.modal.tagInput||"").trim();
+  if(!val)return;
+  if(!state.modal.tags.includes(val))state.modal.tags.push(val);
+  state.modal.tagInput="";
+  render();
+}
 
-// Today inputs
+// Today note inputs
+function todayNoteText(v){state.todayNote=v;}
+function todayToggleTag(tag){
+  const idx=state.todayTags.indexOf(tag);
+  if(idx>-1)state.todayTags.splice(idx,1);else state.todayTags.push(tag);
+  render();
+}
+function todayAddCustomTag(){
+  const inp=document.getElementById("todaytagInput");
+  const val=(inp?inp.value:state.todayTagInput||"").trim();
+  if(!val)return;
+  if(!state.todayTags.includes(val))state.todayTags.push(val);
+  state.todayTagInput="";
+  render();
+}
+
+// Today tracker inputs
 function todayScale(catId,val){state.todayValues[catId]=val;render();}
 function todayYesNo(catId,val){state.todayValues[catId]=val;render();}
 function todayNum(catId,val){state.todayValues[catId]=val===""?"":parseFloat(val);}
 
 function saveToday(){
   const today=todayKey();
-  state.entries[today]={...state.todayValues};
+  const entry={...state.todayValues};
+  if(state.todayNote)entry.__note=state.todayNote;
+  if(state.todayTags&&state.todayTags.length)entry.__tags=[...state.todayTags];
+  state.entries[today]=entry;
   saveEntries();
   state.saved=true;
   render();
   setTimeout(()=>{state.saved=false;render();},2000);
 }
 
-// ── PDF EXPORT ───────────────────────────
+// ── PDF EXPORT ─────────────────────────────────────────────────────
 function exportPDF(){
   const allDays=Object.keys(state.entries).sort();
   if(!allDays.length){alert("No data to export yet.");return;}
   let rows="";
   allDays.forEach(day=>{
     const d=state.entries[day];
-    if(!d||!Object.keys(d).length)return;
+    if(!d||!Object.keys(d).filter(k=>!k.startsWith("__")).length)return;
     let cells=`<td style="padding:8px 12px;font-weight:600;color:#444;border-bottom:1px solid #eee;white-space:nowrap">${formatDate(day)}</td>`;
     state.categories.forEach(cat=>{
       const val=d[cat.id];
@@ -344,12 +491,18 @@ function exportPDF(){
       }
       cells+=`<td style="padding:8px 12px;text-align:center;border-bottom:1px solid #eee">${display}</td>`;
     });
+    const note=d.__note||"";
+    const tags=(d.__tags||[]).join(", ");
+    cells+=`<td style="padding:8px 12px;font-size:12px;color:#666;border-bottom:1px solid #eee;font-style:italic">${note}</td>`;
+    cells+=`<td style="padding:8px 12px;font-size:12px;color:#888;border-bottom:1px solid #eee">${tags}</td>`;
     rows+=`<tr>${cells}</tr>`;
   });
   let headers=`<th style="padding:10px 12px;text-align:left;background:#f0eeff;color:#6C63FF;border-bottom:2px solid #6C63FF">Date</th>`;
   state.categories.forEach(cat=>{headers+=`<th style="padding:10px 12px;text-align:center;background:#f0eeff;color:#6C63FF;border-bottom:2px solid #6C63FF">${cat.emoji} ${cat.name}</th>`;});
+  headers+=`<th style="padding:10px 12px;text-align:left;background:#f0eeff;color:#6C63FF;border-bottom:2px solid #6C63FF">Note</th>`;
+  headers+=`<th style="padding:10px 12px;text-align:left;background:#f0eeff;color:#6C63FF;border-bottom:2px solid #6C63FF">Tags</th>`;
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Tracker Export</title>
-  <style>body{font-family:sans-serif;padding:30px;color:#222;max-width:1000px;margin:0 auto}h1{color:#6C63FF;margin-bottom:4px}p{color:#999;font-size:13px;margin-bottom:24px}table{border-collapse:collapse;width:100%;font-size:14px}tr:hover{background:#fafafa}@media print{body{padding:10px}}</style>
+  <style>body{font-family:sans-serif;padding:30px;color:#222;max-width:1100px;margin:0 auto}h1{color:#6C63FF;margin-bottom:4px}p{color:#999;font-size:13px;margin-bottom:24px}table{border-collapse:collapse;width:100%;font-size:13px}tr:hover{background:#fafafa}@media print{body{padding:10px}}</style>
   </head><body>
   <h1>📋 Tracker Data Export</h1>
   <p>Generated ${formatDate(todayKey())} &nbsp;·&nbsp; ${allDays.length} days logged &nbsp;·&nbsp; ${state.categories.length} categories</p>
@@ -362,7 +515,7 @@ function exportPDF(){
   else{const a=document.createElement("a");a.href=url;a.download="tracker-export.html";a.click();}
 }
 
-// ── OTHER ────────────────────────────────
+// ── OTHER ──────────────────────────────────────────────────────────
 function setHistoryView(v){state.historyView=v;render();}
 function selectCat(id){state.selectedCat=id;render();}
 function toggleEmojiPicker(){state.showEmojiPicker=!state.showEmojiPicker;render();}
